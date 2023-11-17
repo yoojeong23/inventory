@@ -1,0 +1,706 @@
+
+import pandas as pd
+import numpy as np
+import streamlit as st
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+from matplotlib.ticker import StrMethodFormatter
+
+#한글깨짐 방지코드 
+font_location = 'NanumGothic.ttf'
+fm.fontManager.addfont(font_location)
+font_name = fm.FontProperties(fname=font_location).get_name()
+matplotlib.rc('font', family=font_name)
+matplotlib.rc('axes', unicode_minus=False)
+
+st.set_page_config(layout="wide")
+
+
+
+# Initialize session state variables
+if "page" not in st.session_state:
+    st.session_state.page = "프로젝트 개요"
+if "df" not in st.session_state:
+    st.session_state.df = None
+if "df2" not in st.session_state:
+    st.session_state.df2 = None
+if "pivot_html" not in st.session_state:
+    st.session_state.pivot_html = None
+if "pivot_html3" not in st.session_state:
+    st.session_state.pivot_html3 = None
+if "pivot_df2" not in st.session_state:
+    st.session_state.pivot_df2 = None
+if "pivot_df3" not in st.session_state:
+    st.session_state.pivot_df3 = None
+if "pivot_df4" not in st.session_state:
+    st.session_state.pivot_df4 = None
+if "pivot_df5" not in st.session_state:
+    st.session_state.pivot_df5 = None
+    
+# Sidebar buttons for page navigation
+st.title("화학물질Inventory 관리시스템")
+st.sidebar.title("Menu")
+
+# Expander 생성
+with st.sidebar.expander(":bar_chart:$\large\sf{화학물질통계 데이타}$"):
+    if st.button(":one:프로젝트 개요"):
+        st.session_state.page = "프로젝트 개요"
+    if st.button(":two:제품별 통계DB"):
+        st.session_state.page = "제품별 통계DB"
+    if st.button(":three:데이터 분석"):
+        st.session_state.page = "데이터 분석"
+    if st.button(":four:그래프 보기"): 
+        st.session_state.page = "그래프 보기"
+    if st.button(":five:제품별 구성성분"): 
+        st.session_state.page = "제품별 구성성분"
+
+with st.sidebar.expander(":chart_with_upwards_trend:$\large\sf{유해화학물질 실적관리}$"):    
+    if st.button(":one:유해화학물질 실적관리"): 
+        st.session_state.page = "유해화학물질 실적관리"
+    if st.button(":two:유해화학물질 데이터 분석"):
+        st.session_state.page = "유해화학물질 데이터 분석"
+    if st.button(":three:유해화학물질 그래프 보기"):  
+        st.session_state.page = "유해화학물질 그래프 보기"
+    
+with st.sidebar.expander(":chart_with_downwards_trend:$\large\sf{화학물질 배출량 보고}$"):
+    if st.button(":one:화학물질 배출량 보고"): 
+        st.session_state.page = "화학물질 배출량 보고"
+    if st.button(":two:화학물질 배출량 분석"):
+        st.session_state.page = "화학물질 배출량 분석"
+    if st.button(":three:화학물질 배출량 그래프 보기"):  
+        st.session_state.page = "화학물질 배출량 그래프 보기"
+
+# Page1: 프로젝트 개요
+if st.session_state.page == "프로젝트 개요":
+    st.header("개요")
+    st.write('''
+      1. 구축동기
+         
+         -화학물질 통계조사,유해화학물질 실적보고, 화학물질 배출량자료 관리시스템 부재로 데이터의 체계적 관리 미흡  
+         -정부보고자료 회사내 공유 시스템 필요 
+      
+      1. 구축목적
+      
+         -화학물질 통계조사 및 실적 보고 자료 체계적 관리 및 ESG 공시 화학물질 데이타 제공 
+      
+      2. 구축범위
+      
+         -화학물질 통계조사 및 실적보고 (배출량 보고는 추후 추가 예정)
+      
+      3. 주요기능
+      
+         -화학물질 마스터 자료 제공
+         
+         -피벗기능 제공으로 다양한 리포트 보고 기능
+         
+         -Data 자체 오류 검증
+         
+         -SAP연계 데이타 연계 관리,자료다운로드 가능
+        
+         
+      4. 기대효과
+
+         -DB관리시스템 구축으로 누구나 자료구득 가능, 효율적인 데이타 관리, 시각화로 Trend 파악 가능,리포트 작성시간 단축
+      
+      5. 자료 Source
+      
+         -ROMYS,자재구매팀,Poylymer영업팀,PP생산팀,PE생산팀,Aromatics영업팀,생산조정팀
+
+                                
+             ''')
+    
+# Page2: 제품별 통계량
+elif st.session_state.page == "제품별 통계DB":
+    st.header("제품별 통계DB")
+    uploaded_file = st.file_uploader("제품별 통계DB.", type=["xlsx"])
+
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+        df = df.fillna(0)
+        if '연도' in df.columns:
+            df['연도'] = df['연도'].astype(str)
+            
+            # '연도' 칼럼에서 고유한 값을 가져와서 multiselect에 사용
+            years = df['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+
+            # 선택된 연도에 따라 DataFrame을 필터링
+            df = df[df['연도'].isin(selected_years)]
+          
+        st.dataframe(df.style.format({'전년대비 증감율_입고량합계(%)': '{:.2f}%'})) 
+        st.dataframe(df.round(0))
+        st.session_state.df = df  # Save the dataframe in session state
+        
+    elif st.session_state.df is not None:
+        df = st.session_state.df
+        if '연도' in df.columns:
+            years = df['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+            df = df[df['연도'].isin(selected_years)]
+        
+        st.dataframe(df.round(0))
+ 
+        
+        
+# Page3: 피벗 테이블 생성
+elif st.session_state.page == "데이터 분석":
+    st.header("데이터 분석")
+    
+    # Display saved pivot table HTML if exists
+    if st.session_state.pivot_html:
+        st.markdown(st.session_state.pivot_html, unsafe_allow_html=True)   
+        
+    if st.session_state.df is not None:
+        df = st.session_state.df
+            
+        values = st.multiselect("데이터 값으로 사용할 열을 선택하세요.", df.columns, default=st.session_state.get('values', []))
+        index = st.multiselect("Row 인덱스로 사용할 열을 선택하세요.", df.columns, default=st.session_state.get('index', []))
+        columns = st.multiselect("Column 인덱스로 사용할 열을 선택하세요.", df.columns, default=st.session_state.get('columns', []))
+
+        if '제품명(상품명)' in df.columns:
+            selected_products = st.multiselect("보고 싶은 제품명을 선택하세요.", df['제품명(상품명)'].unique(), default=st.session_state.get('selected_products', []))
+        
+            
+        if st.button("Pivot Table 생성"):
+                        # Update the session state for multiselects
+            st.session_state.values = values
+            st.session_state.index = index
+            st.session_state.columns = columns
+            st.session_state.selected_products = selected_products
+            
+            
+            try:
+                if selected_products:
+                    df = df[df['제품명(상품명)'].isin(selected_products)]
+
+                if '연도' in df.columns:
+                    df['연도'] = df['연도'].astype(int)
+            
+
+                pivot_df = pd.pivot_table(df, values=values, index=index, columns=columns, aggfunc=np.sum)
+                pivot_df = pivot_df.fillna(0)
+                # Flatten the MultiIndex for columns (if present)
+                if isinstance(pivot_df.columns, pd.MultiIndex):
+                    pivot_df.columns = [' '.join(map(str, col_tuple)) for col_tuple in pivot_df.columns.values]
+                    
+                st.session_state.pivot_df = pivot_df
+                
+                # Generate and store the HTML table in session state
+                html_table = pivot_df.to_html(classes="table table-striped", float_format=lambda x: '{:,.0f}'.format(x), border=0)
+                st.session_state.pivot_html = html_table
+                st.markdown(html_table, unsafe_allow_html=True)   
+                
+                # Create the HTML table from the pivot_df
+                html_table = '<div style="overflow-x: scroll; overflow-y: scroll; height: 400px;">'
+                html_table += '<table class="table"><thead><tr><th></th>'
+                for col in pivot_df.columns:
+                    html_table += f'<th>{col}</th>'
+                html_table += '</tr></thead><tbody>'
+
+                for idx, row in pivot_df.iterrows():
+                    html_table += '<tr><td>' + str(idx) + '</td>'
+                    for col in pivot_df.columns:
+                        val = row[col]
+                        if isinstance(val, (int, float)):
+                            html_table += f'<td>{val:,.0f}</td>'
+                        else:
+                            html_table += f'<td>{val}</td>'
+                    html_table += '</tr>'
+                html_table += '</tbody></table></div>'
+
+                custom_css = """
+                <style>
+                    .table {
+                        border-collapse: collapse;
+                        width: 120%;
+                        table-layout: auto;
+                        font-size: 0.9em;
+                    }
+                    .table th, .table td {
+                        border: 1px solid black;
+                        padding: 12px;
+                        text-align: center;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .table th {
+                        background-color: #f2f2f2;
+                        position: sticky;
+                        top: 0;
+                    }
+                </style>
+                """
+                st.markdown(custom_css, unsafe_allow_html=True)
+                st.markdown(html_table, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.write("에러가 발생했습니다: ", e)
+    else:
+        st.warning("먼저 데이터를 업로드 해주세요.")
+        
+# Page4: 그래프 보기 
+
+elif st.session_state.page == "그래프 보기":
+    st.header("그래프 보기")
+
+    # If pivot_df exists in session, plot the graph
+    if st.session_state.pivot_df is not None:
+        df = st.session_state.pivot_df.T
+
+        # 그래프 생성 코드
+        fig, ax = plt.subplots()
+        for item in df.columns:
+            ax.plot(df.index, df[item], marker='o', label=str(item))
+
+        # Rotate X-axis labels for better readability and set smaller font size
+        ax.tick_params(axis='x', labelrotation=45, labelsize=8)
+        ax.tick_params(axis='y', labelsize=8)
+        
+        
+        # 천 단위 구분 기호 포매터 설정 (Y 축)
+        ax.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}kg'))
+        
+        # Set labels and title
+        ax.set_xlabel('', fontsize=10)
+        ax.set_ylabel('', fontsize=10)
+        ax.set_title('연도별 제품 통계', fontsize=12)
+        ax.legend(title='제품명(상품명)', bbox_to_anchor=(1.05, 1), loc='upper left',fontsize=10)
+
+        # Tight layout for better spacing
+        plt.tight_layout()
+
+        # Show the plot
+        st.pyplot(fig)
+    else:
+        st.warning("먼저 피벗 테이블을 생성해주세요.")
+        
+        
+# Page5: 제품별 구성성분
+elif st.session_state.page == "제품별 구성성분":
+    st.header("제품별 구성성분")
+    uploaded_file2 = st.file_uploader("제품별 구성성분.", type=["xlsx"])
+
+    if uploaded_file2 is not None:
+        df2 = pd.read_excel(uploaded_file2)
+        if '연도' in df2.columns:
+            df2['연도'] = df2['연도'].astype(str)
+            
+            # '연도' 칼럼에서 고유한 값을 가져와서 multiselect에 사용
+            years = df2['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+
+            # 선택된 연도에 따라 DataFrame을 필터링
+            df2 = df2[df2['연도'].isin(selected_years)]
+
+        st.dataframe(df2.round(0))
+
+        st.session_state.df2 = df2  # Save the dataframe in session state
+    elif st.session_state.df2 is not None:
+        # 세션 상태의 DataFrame을 가져옴
+        df2 = st.session_state.df2
+        if '연도' in df2.columns:
+            years = df2['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+            df2 = df2[df2['연도'].isin(selected_years)]
+        
+        st.dataframe(df2.round(0),use_container_width=True)
+                 
+    else:
+        st.warning("먼저 데이터를 업로드 해주세요.")
+
+# Page6: 유해화학물질 실적관리
+elif st.session_state.page == "유해화학물질 실적관리":
+    st.header("유해화학물질 실적관리")
+    uploaded_file3 = st.file_uploader("유해화학물질 실적관리.", type=["xlsx"])
+
+    if uploaded_file3 is not None:
+        df3 = pd.read_excel(uploaded_file3)
+        if '조사연도' in df3.columns:
+            df3['조사연도'] = df3['조사연도'].astype(str)
+            
+            # '연도' 칼럼에서 고유한 값을 가져와서 multiselect에 사용
+            years = df3['조사연도'].unique().tolist()
+            selected_years = st.multiselect('조사연도 선택:', years, default=years)
+
+            # 선택된 연도에 따라 DataFrame을 필터링
+            df3 = df3[df3['조사연도'].isin(selected_years)]
+            
+        if '세부실적보고명' in df3.columns:
+            df3['세부실적보고명'] = df3['세부실적보고명'].astype(str)
+            
+            # '연도' 칼럼에서 고유한 값을 가져와서 multiselect에 사용
+            years = df3['세부실적보고명'].unique().tolist()
+            selected_years = st.multiselect('세부실적보고명 선택:', years, default=years)
+
+            # 선택된 연도에 따라 DataFrame을 필터링
+            df3 = df3[df3['세부실적보고명'].isin(selected_years)]
+            
+        st.dataframe(df3.round(0))
+
+        st.session_state.df3 = df3  # Save the dataframe in session state
+    elif st.session_state.df3 is not None:
+        # 세션 상태의 DataFrame을 가져옴
+        df3 = st.session_state.df3
+        
+        if '조사연도' in df3.columns:
+            years = df3['조사연도'].unique().tolist()
+            selected_years = st.multiselect('조사연도 선택:', years, default=years)
+            df3 = df3[df3['조사연도'].isin(selected_years)]
+            
+        if '세부실적보고명' in df3.columns:
+            years = df3['세부실적보고명'].unique().tolist()
+            selected_years = st.multiselect('세부실적보고명 선택:', years, default=years)
+            df3 = df3[df3['세부실적보고명'].isin(selected_years)]
+        st.dataframe(df3.round(0),use_container_width=True)
+                 
+    else:
+        st.warning("먼저 데이터를 업로드 해주세요.")
+        
+
+# Page7: 유해화학물질 데이터 분석
+
+elif st.session_state.page == "유해화학물질 데이터 분석":
+    st.header("유해화학물질 데이터 분석")
+    
+    # Display saved pivot table HTML if exists
+    if st.session_state.pivot_html3:
+        st.markdown(st.session_state.pivot_html3, unsafe_allow_html=True)   
+        
+    if st.session_state.df3 is not None:
+        df3 = st.session_state.df3
+            
+        values = st.multiselect("데이터 값으로 사용할 열을 선택하세요.", df3.columns, default=st.session_state.get('values3', []))
+        index = st.multiselect("Row 인덱스로 사용할 열을 선택하세요.", df3.columns, default=st.session_state.get('index3', []))
+        columns = st.multiselect("Column 인덱스로 사용할 열을 선택하세요.", df3.columns, default=st.session_state.get('columns3', []))
+
+        if '제품명' in df3.columns:
+            selected_products = st.multiselect("보고 싶은 제품명을 선택하세요.", df3['제품명'].unique(), default=st.session_state.get('selected_products3', []))
+        
+            
+        if st.button("Pivot Table 생성"):
+                        # Update the session state for multiselects
+            st.session_state.values3 = values
+            st.session_state.index3 = index
+            st.session_state.columns3 = columns
+            st.session_state.selected_products3= selected_products
+            
+            
+            try:
+                if selected_products:
+                    df3 = df3[df3['제품명'].isin(selected_products)]
+
+                if '조사연도' in df3.columns:
+                    df3['조사연도'] = df3['조사연도'].astype(int)
+            
+
+                pivot_df3 = pd.pivot_table(df3, values=values, index=index, columns=columns, aggfunc=np.sum)
+                pivot_df3 = pivot_df3.fillna(0)
+                # Flatten the MultiIndex for columns (if present)
+                if isinstance(pivot_df3.columns, pd.MultiIndex):
+                    pivot_df3.columns = [' '.join(map(str, col_tuple)) for col_tuple in pivot_df3.columns.values]
+                    
+                st.session_state.pivot_df3 = pivot_df3
+                
+                # Generate and store the HTML table in session state
+                html_table = pivot_df3.to_html(classes="table table-striped", float_format=lambda x: '{:,.0f}'.format(x), border=0)
+                st.session_state.pivot_html3 = html_table
+                st.markdown(html_table, unsafe_allow_html=True)   
+                
+                # Create the HTML table from the pivot_df
+                html_table = '<div style="overflow-x: scroll; overflow-y: scroll; height: 400px;">'
+                html_table += '<table class="table"><thead><tr><th></th>'
+                for col in pivot_df3.columns:
+                    html_table += f'<th>{col}</th>'
+                html_table += '</tr></thead><tbody>'
+
+                for idx, row in pivot_df3.iterrows():
+                    html_table += '<tr><td>' + str(idx) + '</td>'
+                    for col in pivot_df3.columns:
+                        val = row[col]
+                        if isinstance(val, (int, float)):
+                            html_table += f'<td>{val:,.0f}</td>'
+                        else:
+                            html_table += f'<td>{val}</td>'
+                    html_table += '</tr>'
+                html_table += '</tbody></table></div>'
+
+                custom_css = """
+                <style>
+                    .table {
+                        border-collapse: collapse;
+                        width: 120%;
+                        table-layout: auto;
+                        font-size: 0.9em;
+                    }
+                    .table th, .table td {
+                        border: 1px solid black;
+                        padding: 12px;
+                        text-align: center;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .table th {
+                        background-color: #f2f2f2;
+                        position: sticky;
+                        top: 0;
+                    }
+                </style>
+                """
+                st.markdown(custom_css, unsafe_allow_html=True)
+                st.markdown(html_table, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.write("에러가 발생했습니다: ", e)
+    else:
+        st.warning("먼저 데이터를 업로드 해주세요.")
+
+
+        
+# Page8: 유해화학물질 그래프 보기
+
+elif st.session_state.page == "유해화학물질 그래프 보기":
+    st.header("유해화학물질 그래프 보기")
+
+    # If pivot_df exists in session, plot the graph
+    if st.session_state.pivot_df3 is not None:
+        df3 = st.session_state.pivot_df3.T
+
+        # 그래프 생성 코드
+        fig, ax = plt.subplots()
+        for item in df3.columns:
+            ax.plot(df3.index, df3[item], marker='o', label=str(item))
+
+        # Rotate X-axis labels for better readability and set smaller font size
+        ax.tick_params(axis='x', labelrotation=45, labelsize=8)
+        ax.tick_params(axis='y', labelsize=8)
+        
+        
+        # 천 단위 구분 기호 포매터 설정 (Y 축)
+        ax.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}kg'))
+        
+        # Set labels and title
+        ax.set_xlabel('', fontsize=10)
+        ax.set_ylabel('', fontsize=10)
+        ax.set_title('연도별 제품 통계', fontsize=12)
+        ax.legend(title='제품명', bbox_to_anchor=(1.05, 1), loc='upper left',fontsize=10)
+
+        # Tight layout for better spacing
+        plt.tight_layout()
+
+        # Show the plot
+        st.pyplot(fig)
+    else:
+        st.warning("먼저 피벗 테이블을 생성해주세요.")
+        
+             
+        
+        
+# Page9: 화학물질 배출량 보고
+
+elif st.session_state.page == "화학물질 배출량 보고":
+    st.header("화학물질 배출량 보고")
+    uploaded_file4 = st.file_uploader("화학물질 배출량 보고.", type=["xlsx"])
+
+    if uploaded_file4 is not None:
+        df4 = pd.read_excel(uploaded_file4)
+        df4 = df4.fillna(0)
+        st.session_state.df4 = df4
+        
+        if '연도' in df4.columns:
+            df4['연도'] = df4['연도'].astype(str)
+            years = df4['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+            df4 = df4[df4['연도'].isin(selected_years)]
+            
+        if '대분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['대분류'].unique().tolist()
+            selected_years = st.multiselect('대분류 선택:', years, default=years)
+            df4 = df4[df4['대분류'].isin(selected_years)]
+            
+        if '중분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['중분류'].unique().tolist()
+            selected_years = st.multiselect('중분류 선택:', years, default=years)
+            df4 = df4[df4['중분류'].isin(selected_years)]
+            
+        if '소분류' in df4.columns:
+            df4['소분류'] = df4['소분류'].astype(str)
+            years = df4['소분류'].unique().tolist()
+            selected_years = st.multiselect('소분류 선택:', years, default=years)
+            df4 = df4[df4['소분류'].isin(selected_years)]
+            
+            
+        #st.dataframe(df.style.format({'전년대비 증감율_입고량합계(%)': '{:.2f}%'})) 
+        st.dataframe(df4.round(0))
+        st.session_state.df4 = df4  # Save the dataframe in session state
+        
+    elif st.session_state.df4 is not None:
+        df4 = st.session_state.df4
+        if '연도' in df4.columns:
+            df4['연도'] = df4['연도'].astype(str)
+            df4 = df4.fillna(0)
+
+            years = df4['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+            df4 = df4[df4['연도'].isin(selected_years)]
+            
+        if '대분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['대분류'].unique().tolist()
+            selected_years = st.multiselect('대분류 선택:', years, default=years)
+            df4 = df4[df4['대분류'].isin(selected_years)]
+            
+        if '중분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['중분류'].unique().tolist()
+            selected_years = st.multiselect('중분류 선택:', years, default=years)
+            df4 = df4[df4['중분류'].isin(selected_years)]
+            
+        if '소분류' in df4.columns:
+            df4['소분류'] = df4['소분류'].astype(str)
+            years = df4['소분류'].unique().tolist()
+            selected_years = st.multiselect('소분류 선택:', years, default=years)
+            df4 = df4[df4['소분류'].isin(selected_years)]
+        
+        st.dataframe(df4.round(0))
+        st.session_state.df4 = df4  # Save the dataframe in session state
+
+
+        
+
+# Page10: 배출량 데이터 분석
+
+elif st.session_state.page == "화학물질 배출량 분석":
+    st.header("화학물질 배출량 분석")
+#     uploaded_file4 = st.file_uploader("화학물질 배출량 분석.", type=["xlsx"])
+
+#     if uploaded_file5 is not None:
+#         df4 = pd.read_excel(uploaded_file4)
+#         df4 = df5.fillna(0)
+    df4 = st.session_state.df4
+    st.session_state.df4 = df4.round(0)
+    
+    if '연도' in df4.columns:
+                df4['연도'] = df4['연도'].astype(str)
+                years = df4['연도'].unique().tolist()
+                selected_years = st.multiselect('연도 선택:', years, default=years)
+                df4 = df4[df4['연도'].isin(selected_years)]
+
+    if '대분류' in df4.columns:
+        df4['대분류'] = df4['대분류'].astype(str)
+        years = df4['대분류'].unique().tolist()
+        selected_years = st.multiselect('대분류 선택:', years, default=years)
+        df4 = df4[df4['대분류'].isin(selected_years)]
+
+    if '중분류' in df4.columns:
+        df4['대분류'] = df4['대분류'].astype(str)
+        years = df4['중분류'].unique().tolist()
+        selected_years = st.multiselect('중분류 선택:', years, default=years)
+        df4 = df4[df4['중분류'].isin(selected_years)]
+
+    if '소분류' in df4.columns:
+        df4['소분류'] = df4['소분류'].astype(str)
+        years = df4['소분류'].unique().tolist()
+        selected_years = st.multiselect('소분류 선택:', years, default=years)
+        df4 = df4[df4['소분류'].isin(selected_years)]
+
+    
+
+            #st.dataframe(df.style.format({'전년대비 증감율_입고량합계(%)': '{:.2f}%'})) 
+#         st.dataframe(df4.round(0))
+#         st.session_state.df4 = df4  # Save the dataframe in session state
+        
+    elif st.session_state.df4 is not None:
+        df4 = st.session_state.df4
+        if '연도' in df4.columns:
+            df4['연도'] = df4['연도'].astype(str)
+            df4 = df4.fillna(0)
+
+            years = df4['연도'].unique().tolist()
+            selected_years = st.multiselect('연도 선택:', years, default=years)
+            df4 = df4[df4['연도'].isin(selected_years)]
+            
+        if '대분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['대분류'].unique().tolist()
+            selected_years = st.multiselect('대분류 선택:', years, default=years)
+            df4 = df4[df4['대분류'].isin(selected_years)]
+            
+        if '중분류' in df4.columns:
+            df4['대분류'] = df4['대분류'].astype(str)
+            years = df4['중분류'].unique().tolist()
+            selected_years = st.multiselect('중분류 선택:', years, default=years)
+            df4 = df4[df4['중분류'].isin(selected_years)]
+            
+        if '소분류' in df4.columns:
+            df4['소분류'] = df4['소분류'].astype(str)
+            years = df4['소분류'].unique().tolist()
+            selected_years = st.multiselect('소분류 선택:', years, default=years)
+            df4 = df4[df4['소분류'].isin(selected_years)]
+        
+        st.dataframe(df4.round(0))
+        st.session_state.df4 = df4  # Save the dataframe in session state
+        
+        # 추가: Column 선택 옵션
+    values = st.multiselect("데이터 값으로 사용할 열을 선택하세요.", df4.columns, default=st.session_state.get('values4', []))
+#     index = st.multiselect("Row 인덱스로 사용할 열을 선택하세요.", df4.columns, default=st.session_state.get('index4', []))
+    columns = st.multiselect("Column 인덱스로 사용할 열을 선택하세요.", df4.columns, default=st.session_state.get('columns4', []))
+
+    if st.button("Pivot Table 생성"):
+        st.session_state.values4 = values
+#         st.session_state.index4 = index
+        st.session_state.columns4 = columns
+
+        try:
+            pivot_df4 = pd.pivot_table(df4, values=values, columns=columns, aggfunc=np.sum)
+            pivot_df4 = pivot_df4.fillna(0)
+            st.session_state.pivot_df4 = pivot_df4
+#             st.write(pivot_df4.round(0),use_container_width=True)
+            st.dataframe(st.session_state.pivot_df4.round(0),use_container_width=True)
+
+        except Exception as e:
+            st.write("에러가 발생했습니다: ", e)
+
+    elif 'pivot_df4' in st.session_state:
+#         st.write(st.session_state.pivot_df4.round(0),use_container_width=True)
+        st.dataframe(st.session_state.pivot_df4.round(0),use_container_width=True)
+        
+# Page11: 유해화학물질 그래프 보기
+
+elif st.session_state.page == "화학물질 배출량 그래프 보기":
+    st.header("화학물질 배출량 그래프 보기")
+
+
+    if st.session_state.pivot_df4 is not None:
+        df4 = st.session_state.pivot_df4.T
+
+        # 그래프 생성 코드
+        fig, ax = plt.subplots()
+        for item in df4.columns:
+            ax.plot(df4.index, df4[item], marker='o', label=str(item))
+
+        # Rotate X-axis labels for better readability and set smaller font size
+        ax.tick_params(axis='x', labelrotation=45, labelsize=8)
+        ax.tick_params(axis='y', labelsize=8)
+        
+        
+        # 천 단위 구분 기호 포매터 설정 (Y 축)
+        ax.yaxis.set_major_formatter(StrMethodFormatter('{x:,.0f}kg'))
+        
+        # Set labels and title
+        ax.set_xlabel('', fontsize=10)
+        ax.set_ylabel('', fontsize=10)
+        ax.set_title('연도별 제품 통계', fontsize=12)
+        ax.legend(title='제품명', bbox_to_anchor=(1.05, 1), loc='upper left',fontsize=10)
+
+        # Tight layout for better spacing
+        plt.tight_layout()
+
+        # Show the plot
+        st.pyplot(fig)
+    else:
+        st.warning("먼저 피벗 테이블을 생성해주세요.")
+        
+             
